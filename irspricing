@@ -1,0 +1,48 @@
+import QuantLib as ql
+
+def price_interest_rate_swap(start_date, maturity_date, fixed_rate, notional, fixed_leg_tenor, floating_leg_tenor, floating_index, discount_curve):
+
+    # Set up the interest rate swap
+    calendar = ql.TARGET()
+    settlement_days = 0
+    fixed_leg_daycount = ql.Thirty360()
+    floating_leg_daycount = ql.Actual360()
+
+    # Create the fixed leg schedule
+    fixed_schedule = ql.Schedule(start_date, maturity_date, fixed_leg_tenor, calendar,
+                                 ql.ModifiedFollowing, ql.ModifiedFollowing,
+                                 ql.DateGeneration.Backward, False)
+
+    # Create the floating leg schedule
+    floating_schedule = ql.Schedule(start_date, maturity_date, floating_leg_tenor, calendar,
+                                    ql.ModifiedFollowing, ql.ModifiedFollowing,
+                                    ql.DateGeneration.Backward, False)
+
+    # Create the swap
+    swap = ql.VanillaSwap(ql.VanillaSwap.Payer, notional, fixed_schedule, fixed_rate, fixed_leg_daycount,
+                          floating_schedule, floating_index, 0.0, floating_leg_daycount)
+
+    # Set up the pricing engine
+    swap_engine = ql.DiscountingSwapEngine(ql.YieldTermStructureHandle(discount_curve))
+    swap.setPricingEngine(swap_engine)
+
+    # Calculate the swap NPV
+    npv = swap.NPV()
+
+    return npv
+
+# Example usage
+start_date = ql.Date(1, 7, 2023)
+maturity_date = ql.Date(1, 7, 2028)
+fixed_rate = 0.05
+notional = 1000000
+fixed_leg_tenor = ql.Period(1, ql.Years)
+floating_leg_tenor = ql.Period(6, ql.Months)
+floating_index = ql.Euribor6M()
+discount_curve = ql.YieldTermStructureHandle(ql.FlatForward(start_date, 0.05, ql.Actual360()))
+
+swap_price = price_interest_rate_swap(start_date, maturity_date, fixed_rate, notional,
+                                      fixed_leg_tenor, floating_leg_tenor,
+                                      floating_index, discount_curve)
+
+print("Interest Rate Swap Price: ", swap_price)
