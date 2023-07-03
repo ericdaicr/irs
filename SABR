@@ -1,37 +1,27 @@
 import numpy as np
 
-def sabr_simulation(F0, alpha, beta, rho, nu, time_to_expiry, num_simulations, num_days):
-    dt = time_to_expiry / num_days
-    forward_rates = np.zeros((num_simulations, num_days))
-    forward_rates[:, 0] = F0
+def sabr_forecast(F0, sigma0, rho, num_simulations, num_days):
+    dt = 1  # Time step is set to 1 day
+    F_forecast = np.zeros((num_simulations, num_days))
+    F_forecast[:, 0] = F0
+    sigma = sigma0
 
     for sim in range(num_simulations):
-        dZ = np.random.normal(size=num_days)
-        dW = rho * dZ * np.sqrt(dt)
-        vol_of_vol = nu * np.sqrt(dt) * dZ
-
+        dW = np.random.normal(size=num_days)
+        dZ = rho * dW
         for day in range(1, num_days):
-            forward_rates[sim, day] = forward_rates[sim, day-1] + alpha * forward_rates[sim, day-1]**beta * np.sqrt(day*dt) * dW[day-1]
+            F_forecast[sim, day] = F_forecast[sim, day-1] + dW[day-1] * sigma * F_forecast[sim, day-1]**0
 
-            # Update volatility based on the SABR formula
-            forward_vol = alpha * forward_rates[sim, day-1]**beta
-            forward_vol *= (1 + (beta**2 - 2) * forward_vol**2 * dt / (24 * forward_rates[sim, day-1]**2))
-            forward_vol += nu * forward_vol * vol_of_vol[day-1]
-            alpha = forward_vol / forward_rates[sim, day-1]**beta
+        # Update sigma for the next simulation
+        sigma += dZ.mean() * sigma * dt
 
-        # Update parameters for the next simulation
-        # Update F0, alpha, beta, rho, nu if necessary
-
-    return forward_rates
+    return F_forecast
 
 # Example usage
-F0 = 0.05  # Initial forward rate
-alpha = 0.2  # Initial volatility
-beta = 0.5  # Correlation parameter
-rho = 0.3  # Correlation coefficient
-nu = 0.4  # Volatility of volatility
-time_to_expiry = 365  # Time to expiry in days
-num_simulations = 500  # Number of simulations
+F0 = 100  # Initial forward value
+sigma0 = 0.2  # Initial volatility
+rho = -0.5  # Correlation coefficient
+num_simulations = 500  # Number of independent runs
 num_days = 365  # Number of days
 
-simulation_results = sabr_simulation(F0, alpha, beta, rho, nu, time_to_expiry, num_simulations, num_days)
+forecast_results = sabr_forecast(F0, sigma0, rho, num_simulations, num_days)
